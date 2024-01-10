@@ -53,16 +53,10 @@ class Domain_Classifier(nn.Module):
             self.fc2 = nn.Linear(144,16)
             self.fc3 = nn.Linear(16, num_class)
 
-    def forward(self, input, constant, Reverse):
-        if Reverse:
-            input = GradReverse.grad_reverse(input, constant)
-        else:
-            input = Grad.grad(input, constant)
-        logits = torch.tanh(self.fc1(input))
+    def forward(self, input):
+        logits = torch.relu(self.fc1(input))
         logits = torch.relu(self.fc2(logits))
         logits = self.fc3(logits)
-        logits = F.log_softmax(logits, 1)
-        #logits = F.softmax(logits, 1)
 
         return logits
 
@@ -74,7 +68,7 @@ class CORF(nn.Module):
                  forecast_length,backcast_length, nb_blocks_per_stack, out_dim=12):
         super(CORF, self).__init__()
         self.device = device
-        
+
         self.CoRex = CoRex(device, num_nodes, dropout=dropout,
                            supports=supports, gcn_bool=gcn_bool,
                            in_dim=in_dim, out_dim=seq_length,
@@ -92,14 +86,16 @@ class CORF(nn.Module):
                                     kernel_size=(1, 1),
                                     bias=True).to(self.device)
 
+        self.layer1 = nn.Sequential(nn.Linear(in_features=forecast_length, out_features=forecast_length), nn.ReLU(True)).to(self.device)
+        self.layer2 = nn.Sequential(nn.Linear(in_features=forecast_length, out_features=forecast_length), nn.ReLU(True)).to(self.device)
+        self.layer3 = nn.Sequential(nn.Linear(in_features=forecast_length, out_features=1)).to(self.device)
+
 
     def forward(self,input):
-        embedding = self.CoRex(input).to(self.device)
-        encoder = self.mid_conv(embedding).to(self.device)
+        embedding = self.CoRex(input).to(self.device).transpose(1,3)
+        encoder_1 = self.layer1(embedding)
+        encoder_2 = self.layer2(encoder_1)
+        encoder = self.layer3(encoder_2).transpose(1,3)
         backcast, forecast = self.ChronoProphet(encoder)
         forecast = forecast.to(self.device)
         return embedding, forecast
-
-
-
-

@@ -76,6 +76,9 @@ class StandardScaler():
         return (data * self.std) + self.mean
 
 
+def set_requires_grad(model, requires_grad=True):
+    for param in model.parameters():
+        param.requires_grad = requires_grad
 
 
 def load_all_dataset(data_path,cal_data_path,seq_length,
@@ -91,8 +94,6 @@ def load_all_dataset(data_path,cal_data_path,seq_length,
                                                             add_time_in_day=False,
                                                             add_day_in_week=False)
     cal_x_train = cal_x_train.astype('float')
-    print("cal_x_train:")
-    print(cal_x_train.shape)
     for category in ['train', 'val', 'test']:
         data['x_' + category] = np.concatenate([holiday_data['x_'+category].astype(np.float32),no_holiday_data['x_'+category].astype(np.float32)])
         data['y_' + category] = np.concatenate([holiday_data['y_'+category].astype(np.float32),no_holiday_data['y_'+category].astype(np.float32)])
@@ -112,7 +113,69 @@ def load_all_dataset(data_path,cal_data_path,seq_length,
     data['scaler'] = scaler
     return data
 
+def load_source_dataset(data_path,cal_data_path,seq_length,
+                     batch_size, valid_batch_size=None,
+                     test_batch_size=None):
+    data = {}
+    data_df = pd.read_csv(data_path)
 
+    cal_df = pd.read_csv(cal_data_path)
+    #cal_df = cal_df.iloc[:,1:-1]
+    holiday_data, no_holiday_data, cal_x_train = generate_train_val_test(data_df,cal_df,seq_length_x=seq_length,
+                                                            seq_length_y=seq_length,y_start=1,
+                                                            add_time_in_day=False,
+                                                            add_day_in_week=False)
+    cal_x_train = cal_x_train.astype('float')
+    for category in ['train', 'val', 'test']:
+        data['x_' + category] = no_holiday_data['x_'+category].astype(np.float32)
+        data['y_' + category] = no_holiday_data['y_'+category].astype(np.float32)
+        M, N = holiday_data['x_'+category].shape[0], no_holiday_data['x_'+category].shape[0]
+        data[category+'_label'] = np.zeros(N)
+        data['x_' + category],data['y_'+ category], data[category + '_label'] = utils.shuffle(data['x_' + category],data['y_'+ category], data[category + '_label'])
+    #scaler = StandardScaler(mean=data['x_train'][..., 0].mean(axis=0), std=data['x_train'][..., 0].std(axis=0))
+    scaler = StandardScaler(mean=cal_x_train[..., 0].mean(axis=0), std=cal_x_train[..., 0].std(axis=0))
+    # Data format
+    for category in ['train', 'val', 'test']:
+        data['x_' + category][..., 0] = scaler.transform(data['x_' + category][..., 0])
+        data['y_' + category][..., 0] = scaler.transform(data['y_' + category][..., 0])
+
+    data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size)
+    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], valid_batch_size)
+    data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size)
+    data['scaler'] = scaler
+    return data
+
+def load_target_dataset(data_path,cal_data_path,seq_length,
+                     batch_size, valid_batch_size=None,
+                     test_batch_size=None):
+    data = {}
+    data_df = pd.read_csv(data_path)
+
+    cal_df = pd.read_csv(cal_data_path)
+    #cal_df = cal_df.iloc[:,1:-1]
+    holiday_data, no_holiday_data, cal_x_train = generate_train_val_test(data_df,cal_df,seq_length_x=seq_length,
+                                                            seq_length_y=seq_length,y_start=1,
+                                                            add_time_in_day=False,
+                                                            add_day_in_week=False)
+    cal_x_train = cal_x_train.astype('float')
+    for category in ['train', 'val', 'test']:
+        data['x_' + category] = holiday_data['x_'+category].astype(np.float32)
+        data['y_' + category] = holiday_data['y_'+category].astype(np.float32)
+        M, N = holiday_data['x_'+category].shape[0], no_holiday_data['x_'+category].shape[0]
+        data[category+'_label'] = np.ones(M)
+        data['x_' + category],data['y_'+ category], data[category + '_label'] = utils.shuffle(data['x_' + category],data['y_'+ category], data[category + '_label'])
+    #scaler = StandardScaler(mean=data['x_train'][..., 0].mean(axis=0), std=data['x_train'][..., 0].std(axis=0))
+    scaler = StandardScaler(mean=cal_x_train[..., 0].mean(axis=0), std=cal_x_train[..., 0].std(axis=0))
+    # Data format
+    for category in ['train', 'val', 'test']:
+        data['x_' + category][..., 0] = scaler.transform(data['x_' + category][..., 0])
+        data['y_' + category][..., 0] = scaler.transform(data['y_' + category][..., 0])
+
+    data['train_loader'] = DataLoader(data['x_train'], data['y_train'], batch_size)
+    data['val_loader'] = DataLoader(data['x_val'], data['y_val'], valid_batch_size)
+    data['test_loader'] = DataLoader(data['x_test'], data['y_test'], test_batch_size)
+    data['scaler'] = scaler
+    return data
 
 
 

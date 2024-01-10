@@ -118,10 +118,9 @@ def generate_train_val_test(df, cal_df,seq_length_x,
         add_day_in_week=add_day_in_week,
     )
 
-    print("x shape: ", x.shape, ", y shape: ", y.shape)
     # Write the data into npz file.
 
-    
+
 
     num_samples = x.shape[0]
     num_test = round(num_samples * 0.2)
@@ -133,14 +132,10 @@ def generate_train_val_test(df, cal_df,seq_length_x,
         y[num_train: num_train + num_val],
     )
     x_test, y_test = x[-num_test:], y[-num_test:]
-    print("------------------")
-    print(x_test.shape,y_test.shape)
-    print(x_val.shape, y_val.shape)
-    print("------------------")
 
     cal_x_train, cal_y_train = cal_x[:num_train], cal_y[:num_train]
 
-   
+
 
     holiday_x_train, no_holiday_x_train, holiday_y_train, no_holiday_y_train = seq_is_holiday(x_train, y_train)
     holiday_x_test, no_holiday_x_test, holiday_y_test,no_holiday_y_test = seq_is_holiday(x_test, y_test)
@@ -166,6 +161,5 @@ def generate_train_val_test(df, cal_df,seq_length_x,
     no_holiday['y_test'] = no_holiday_y_test
     no_holiday['x_val'] = no_holiday_x_val
     no_holiday['y_val'] = no_holiday_y_val
+
     return holiday, no_holiday,cal_x_train[:,:,1:-1,:]
-
-
