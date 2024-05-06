@@ -12,5 +12,5 @@ Here is the code for the paper DARF.
 - **ETTh2:** https://github.com/zhouhaoyi/ETDataset
 - **Traffic:** https://zenodo.org/record/4656132#.Y3ttxezMIeY
 
-## Runing
+## Running
 	python3 run.py
